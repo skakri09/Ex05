@@ -36,12 +36,24 @@
     <ClInclude Include="include\GameException.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\TextRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\GUI_RenderInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GameManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\TextRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\GUI_RenderInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,6 +68,12 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="shaders\fbo.vert">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\text.frag">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="shaders\text.vert">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>

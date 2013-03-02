@@ -115,6 +115,15 @@ void GameManager::createMatrices() {
 	view_matrix = glm::mat4(1.0f);
 	view_matrix = glm::rotate(view_matrix, 25.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 	view_matrix = glm::translate(view_matrix, glm::vec3(0.0f, 0.0f, -1.0f));
+
+	fbo_projectionMatrix = glm::mat4(1);
+	fbo_viewMatrix = glm::mat4(1);
+
+	fbo_modelMatrix = glm::mat4(1);
+
+	fbo_modelMatrix = glm::translate(fbo_modelMatrix, glm::vec3(-0.7f, 0.7f, 0));
+	fbo_modelMatrix = glm::scale(fbo_modelMatrix, glm::vec3(0.3));
+	//fbo_modelMatrix = glm::rotate(fbo_modelMatrix, 90.0f, glm::vec3(0.0f, 0, -1));
 }
 
 void GameManager::createHeightProgram() {
@@ -143,6 +152,10 @@ void GameManager::createFBOProgram() {
 
 	fbo_program.reset(new Program(vs_src, fs_src));
 	fbo_program->use();
+
+	glUniformMatrix4fv(fbo_program->getUniform("projection"), 1, 0, glm::value_ptr(fbo_projectionMatrix));
+	glUniformMatrix4fv(fbo_program->getUniform("view"), 1, 0, glm::value_ptr(fbo_viewMatrix));
+	glUniformMatrix4fv(fbo_program->getUniform("model_matrix"), 1, 0, glm::value_ptr(fbo_modelMatrix));
 	glUniform1i(fbo_program->getUniform("fbo_texture"), 0);
 	glUseProgram(0);
 	CHECK_GL_ERROR();
@@ -185,7 +198,9 @@ void GameManager::createFBOVAO() {
 		-1.0, -1.0,
 		1.0, 1.0,
 		1.0, -1.0,
+
 	};
+	
 	glGenBuffers(1, &fbo_vertex_bo);
 	glBindBuffer(GL_ARRAY_BUFFER, fbo_vertex_bo);
 	glBufferData(GL_ARRAY_BUFFER, 4*2*sizeof(float), &positions[0], GL_STATIC_DRAW);
@@ -195,7 +210,6 @@ void GameManager::createFBOVAO() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
-
 
 void GameManager::init() {
 	// Initialize SDL
@@ -225,6 +239,10 @@ void GameManager::init() {
 	//Get the textures from file and into an OpenGL texture
 	height_texture = loadTexture("ex05_height.bmp");
 	color_texture = loadTexture("ex05_tex.bmp");
+	guiRenderInfo = std::make_shared<GUI_RenderInfo>();
+	guiRenderInfo->Init(window_width, window_height);
+	guiRenderInfo->CreateText("Capturing Video", glm::vec2(-0.9f, 0.9f), false);
+	VideoCapture = false;
 }
 
 void GameManager::render() {
@@ -232,39 +250,14 @@ void GameManager::render() {
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	height_program->use();
-	//Rotate the model	
-	//Rotate the model by updating the model matrix
-	model_matrix = glm::translate(model_matrix, glm::vec3(0.5f));
-	model_matrix = glm::rotate(model_matrix, static_cast<float>(45.0f*my_timer.elapsedAndRestart()), glm::vec3(0.0f, 1.0f, 0.0f));
-	model_matrix = glm::translate(model_matrix, glm::vec3(-0.5f));
-	glUniformMatrix4fv(height_program->getUniform("model"), 1, 0, glm::value_ptr(model_matrix));
-	
-	//Bind the textures before rendering
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, height_texture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, color_texture);
-	
-	//Render geometry
-	glPrimitiveRestartIndex(mesh.restart_token);
-	glBindVertexArray(height_vao);
-	glDrawElements(GL_TRIANGLE_STRIP, mesh.indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
-	CHECK_GL_ERROR();
-	
-	//Unbind the textures
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	RenderScene();
 
-	
-	
-	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
+	RenderScene();
+	guiRenderInfo->Render();
+
 	fbo_program->use();
 
 	//Bind the textures before rendering
@@ -272,6 +265,7 @@ void GameManager::render() {
 	glBindTexture(GL_TEXTURE_2D, fbo_texture);
 
 	glBindVertexArray(fbo_vao);
+
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	CHECK_GL_ERROR();
 
@@ -281,12 +275,20 @@ void GameManager::render() {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	ScreenShot();
+	
+	if(VideoCapture)
+	{
+		SaveImageToDisk(window_width, window_height, &frameCounter);
+		//thread_1 = boost::thread(SaveImageToDisk, window_width, window_height, &frameCounter, ".bmp");
+		//thread_1 = boost::thread(SaveImageToDisk, );
+		//SaveImageToDisk(window_width,window_height, &frameCounter);
+	}
 }
 
 void GameManager::play() {
 	bool doExit = false;
-
+	float x, y, z;
+	x = y = z = 0;
 	//SDL main loop
 	while (!doExit) {
 		SDL_Event event;
@@ -299,7 +301,25 @@ void GameManager::play() {
 						&& event.key.keysym.mod & KMOD_CTRL) //Ctrl+q
 					doExit = true;
 				if(event.key.keysym.sym == SDLK_p)
-					ScreenShot();
+				{
+					guiRenderInfo->ToggleShowText("Capturing Video");
+					VideoCapture = !VideoCapture;
+				}
+				if(event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_s || event.key.keysym.sym == SDLK_d)
+				{
+					if(event.key.keysym.sym == SDLK_a)
+						x += 0.1f;
+					if(event.key.keysym.sym == SDLK_s)
+						y+=0.1f;
+					if(event.key.keysym.sym == SDLK_d)
+						z+= 0.1f;
+
+					fbo_program->use();
+					fbo_modelMatrix = glm::rotate(fbo_modelMatrix, 25.0f, glm::vec3(x, y, z));
+					glUniformMatrix4fv(fbo_program->getUniform("model_matrix"), 1, 0, glm::value_ptr(fbo_modelMatrix));
+					glUseProgram(0);
+				}
+				
 				break;
 			case SDL_QUIT: //e.g., user clicks the upper right x
 				doExit = true;
@@ -310,6 +330,7 @@ void GameManager::play() {
 		//Render, and swap front and back buffers
 		render();
 		SDL_GL_SwapWindow(main_window);
+		thread_1.join();
 	}
 	quit();
 }
@@ -403,14 +424,14 @@ GLuint GameManager::loadTexture(std::string filename) {
 	return texture;
 }
 
-void GameManager::ScreenShot()
+void SaveImageToDisk(unsigned int window_width, unsigned int window_height,
+					unsigned int* frameCounter, std::string format)
 {
 	std::vector<unsigned char> pixelData;
 	pixelData.resize(window_width*window_height*3);
 	glReadBuffer(GL_FRONT);
 	glReadPixels(0, 0, window_width, window_height, GL_RGB, GL_UNSIGNED_BYTE, &pixelData[0]);
 	
-
 	ILuint ImageName;
 
 	ilGenImages(1, &ImageName); 
@@ -419,9 +440,39 @@ void GameManager::ScreenShot()
 	
 	std::stringstream str;
 	std::string path = "video/frame";
-	std::string ext = ".jpg";
-	str<<path<<frameCounter<<ext;
+	str<<path<<++*frameCounter<<format;
 
 	ilSaveImage(str.str().c_str());
-	frameCounter++;
+	
 }
+
+void GameManager::RenderScene()
+{
+	height_program->use();
+	//Rotate the model	
+	//Rotate the model by updating the model matrix
+	model_matrix = glm::translate(model_matrix, glm::vec3(0.5f));
+	model_matrix = glm::rotate(model_matrix, static_cast<float>(45.0f*my_timer.elapsedAndRestart()), glm::vec3(0.0f, 1.0f, 0.0f));
+	model_matrix = glm::translate(model_matrix, glm::vec3(-0.5f));
+	glUniformMatrix4fv(height_program->getUniform("model"), 1, 0, glm::value_ptr(model_matrix));
+
+	//Bind the textures before rendering
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, height_texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, color_texture);
+
+	//Render geometry
+	glPrimitiveRestartIndex(mesh.restart_token);
+	glBindVertexArray(height_vao);
+	glDrawElements(GL_TRIANGLE_STRIP, mesh.indices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+	CHECK_GL_ERROR();
+
+	//Unbind the textures
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+

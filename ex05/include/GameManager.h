@@ -9,8 +9,8 @@
 #include <glm/glm.hpp>
 #include "Timer.h"
 #include "GLUtils/GLUtils.hpp"
-
-
+#include "GUI_RenderInfo.h"
+#include <boost/thread.hpp>
 /**
  * This class handles the game logic and display.
  * Uses SDL as the display manager, and glm for 
@@ -106,7 +106,12 @@ protected:
 	static const unsigned int fbo_height = 400;
 
 private:
-	void ScreenShot();
+	
+	bool VideoCapture;
+
+	std::shared_ptr<GUI_RenderInfo> guiRenderInfo;
+
+	void RenderScene();
 
 	//Variables for our regular height map rendering
 	GLuint height_vao; //< Vertex array object
@@ -127,6 +132,10 @@ private:
 	glm::mat4 model_matrix; //< OpenGL model transformation matrix
 	glm::mat4 view_matrix; //< OpenGL camera/view matrix
 	glm::mat3 normal_matrix; //< OpenGL matrix to transfor normals
+
+	glm::mat4 fbo_modelMatrix;
+	glm::mat4 fbo_projectionMatrix;
+	glm::mat4 fbo_viewMatrix;
 
 	std::shared_ptr<GLUtils::Program> height_program, fbo_program;
 
@@ -163,6 +172,12 @@ private:
 	  * Loads a texture into the OpenGL texture texture
 	  */
 	static GLuint loadTexture(std::string filename);
+
+	
+	boost::thread thread_1;
 };
+
+void SaveImageToDisk(unsigned int window_width, unsigned int window_height,
+					unsigned int* frameCounter, std::string format = ".bmp");
 
 #endif // _GAMEMANAGER_H_

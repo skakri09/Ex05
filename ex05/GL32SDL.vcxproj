@@ -16,17 +16,23 @@
     <ClInclude Include="include\GLUtils\GLUtils.hpp" />
     <ClInclude Include="include\GLUtils\Program.hpp" />
     <ClInclude Include="include\GLUtils\VBO.hpp" />
+    <ClInclude Include="include\GUI_RenderInfo.h" />
+    <ClInclude Include="include\TextRenderer.h" />
     <ClInclude Include="include\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GameManager.cpp" />
+    <ClCompile Include="src\GUI_RenderInfo.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\TextRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\fbo.frag" />
     <None Include="shaders\fbo.vert" />
     <None Include="shaders\height.frag" />
     <None Include="shaders\height.vert" />
+    <None Include="shaders\text.frag" />
+    <None Include="shaders\text.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0EB6082A-7B48-4E60-B4B3-2EB3C7254AC1}</ProjectGuid>
@@ -61,6 +67,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">C:\libraries\i386\boost_1_47;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
