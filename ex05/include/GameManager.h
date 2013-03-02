@@ -123,6 +123,7 @@ private:
 	GLuint fbo; //< Frame buffer object id
 	GLuint fbo_vao; //< Vertex array object for our FBO geometry (full-screen quad)
 	GLuint fbo_vertex_bo; //< Vetex buffer object for fullscreen quad
+	
 	GLuint fbo_texture; //< framebuffer object color attachment (texture)
 	GLuint fbo_depth; //< framebuffer object depth attachment (renerbuffer)
 
